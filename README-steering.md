@@ -133,15 +133,15 @@ graph TD
 
 匹配检查:
   ✅ always 规则
-  ✅ 'OneManage/**/*'  → tech-stack.md
-  ✅ '*.py'            → code-style.md
+  ✅ 'OneManage/**/*'  → backend-tech-stack.md
+  ✅ '*.py'            → backend-code-style.md
   ❌ 'OneManage_web/**/*' → frontend-tech-stack.md
 
 应用规则:
   ✅ spec-conventions.md (always)
   ✅ development-workflow.md (always)
-  ✅ tech-stack.md (后端技术栈)
-  ✅ code-style.md (Python 代码风格)
+  ✅ backend-tech-stack.md (后端技术栈)
+  ✅ backend-code-style.md (Python 代码风格)
 ```
 
 #### 例子 2：激活前端文件
@@ -150,8 +150,8 @@ graph TD
 
 匹配检查:
   ✅ always 规则
-  ❌ 'OneManage/**/*'  → tech-stack.md
-  ❌ '*.py'            → code-style.md
+  ❌ 'OneManage/**/*'  → backend-tech-stack.md
+  ❌ '*.py'            → backend-code-style.md
   ✅ 'OneManage_web/**/*' → frontend-tech-stack.md
 
 应用规则:
@@ -178,12 +178,14 @@ graph TD
 coding/                          ← 工作区根目录
 ├── .kiro/                       ← Kiro 配置
 │   ├── steering/                ← Steering 规则目录
-│   │   ├── spec-conventions.md          (always)
-│   │   ├── development-workflow.md      (always)
-│   │   ├── task-management.md           (always)
-│   │   ├── tech-stack.md                (fileMatch: OneManage/**/*)
-│   │   ├── frontend-tech-stack.md       (fileMatch: OneManage_web/**/*)
-│   │   ├── code-style.md                (fileMatch: *.py)
+│   │   ├── spec-conventions.md              (always)
+│   │   ├── development-workflow.md          (always)
+│   │   ├── task-management.md               (always)
+│   │   ├── backend-tech-stack.md            (fileMatch: OneManage/**/*)
+│   │   ├── frontend-tech-stack.md           (fileMatch: OneManage_web/**/*)
+│   │   ├── backend-code-style.md            (fileMatch: *.py)
+│   │   ├── backend-deployment.md            (fileMatch: docker-compose*.yml|Dockerfile|*.sh)
+│   │   ├── backend-environment-config.md    (always)
 │   │   └── ...
 │   ├── specs/                   ← Spec 文档
 │   └── settings/                ← IDE 设置
@@ -199,9 +201,11 @@ coding/                          ← 工作区根目录
 | `spec-conventions.md` | `always` | - | 所有对话 ✅ |
 | `development-workflow.md` | `always` | - | 所有对话 ✅ |
 | `task-management.md` | `always` | - | 所有对话 ✅ |
-| `tech-stack.md` | `fileMatch` | `OneManage/**/*` | 后端文件 ✅ |
+| `backend-tech-stack.md` | `fileMatch` | `OneManage/**/*` | 后端文件 ✅ |
 | `frontend-tech-stack.md` | `fileMatch` | `OneManage_web/**/*` | 前端文件 ✅ |
-| `code-style.md` | `fileMatch` | `*.py` | Python 文件 ✅ |
+| `backend-code-style.md` | `fileMatch` | `*.py` | Python 文件 ✅ |
+| `backend-deployment.md` | `fileMatch` | `docker-compose*.yml\|Dockerfile\|*.sh` | 部署文件 ✅ |
+| `backend-environment-config.md` | `always` | - | 环境配置 ✅ |
 
 ## 🔧 配置和管理
 
@@ -260,7 +264,7 @@ coding/                          ← 工作区根目录
 ### 1. 使用 fileMatch 分离前后端规则
 
 ```markdown
-# tech-stack.md (后端)
+# backend-tech-stack.md (后端)
 ---
 inclusion: fileMatch
 fileMatchPattern: 'OneManage/**/*'
@@ -287,7 +291,7 @@ inclusion: always
 ### 3. 语言特定规则使用文件扩展名
 
 ```markdown
-# code-style.md
+# backend-code-style.md
 ---
 inclusion: fileMatch
 fileMatchPattern: '*.py'
@@ -351,8 +355,8 @@ fileMatchPattern: 'path/to/match/**/*'
 **可以！** 一个文件可以匹配多个 fileMatchPattern。
 
 例如 `OneManage/core/broker.py` 会同时应用：
-- `tech-stack.md` (匹配 `OneManage/**/*`)
-- `code-style.md` (匹配 `*.py`)
+- `backend-tech-stack.md` (匹配 `OneManage/**/*`)
+- `backend-code-style.md` (匹配 `*.py`)
 
 ### Q3: 如何临时禁用某个规则？
 
@@ -384,7 +388,7 @@ inclusion: manual  # 改为 manual 模式
 
 - [Spec 开发规范](.kiro/steering/spec-conventions.md)
 - [开发流程策略](.kiro/steering/development-workflow.md)
-- [后端技术栈](.kiro/steering/tech-stack.md)
+- [后端技术栈](.kiro/steering/backend-tech-stack.md)
 - [前端技术栈](.kiro/steering/frontend-tech-stack.md)
 
 ---

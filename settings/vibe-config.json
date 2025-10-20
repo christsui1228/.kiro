@@ -1,9 +1,10 @@
-{
+ {
   "vibeMode": {
     "applySteering": true,
     "steeringRules": [
-      "tech-stack",
-      "code-style",
+      "backend-tech-stack",
+      "frontend-tech-stack",
+      "backend-code-style",
       "spec-conventions"
     ],
     "relaxedValidation": true,
