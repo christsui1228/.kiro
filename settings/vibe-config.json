@@ -1,0 +1,26 @@
+{
+  "vibeMode": {
+    "applySteering": true,
+    "steeringRules": [
+      "tech-stack",
+      "code-style",
+      "spec-conventions"
+    ],
+    "relaxedValidation": true,
+    "autoSuggestModernSolutions": true,
+    "language": "zh-CN",
+    "codeCommentLanguage": "zh-CN"
+  },
+  "quickActions": {
+    "generateCode": {
+      "followTechStack": true,
+      "useModernPatterns": true,
+      "includeChineseComments": true
+    },
+    "refactorCode": {
+      "applyBestPractices": true,
+      "modernizeApproach": true,
+      "systematicSolution": true
+    }
+  }
+}
