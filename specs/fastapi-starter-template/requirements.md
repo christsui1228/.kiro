@@ -185,110 +185,52 @@
 
 ---
 
-## 需求 10: Docker 开发环境
-
-**用户故事**: 作为开发者，我希望模板包含 Docker 配置，这样我可以快速启动本地开发环境。
-
-### 验收标准
-
-10.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `docker-compose.yml` 文件
-
-10.2 WHEN 开发者运行 `docker-compose up` 命令时，THE 系统 SHALL 启动 PostgreSQL 数据库服务
-
-10.3 WHEN 开发者运行 `docker-compose up` 命令时，THE 系统 SHALL 启动 NATS JetStream 服务
-
-10.4 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `Dockerfile` 文件，该文件用于构建应用镜像
-
----
-
-## 需求 11: 示例业务模块
+## 需求 10: 示例业务模块
 
 **用户故事**: 作为开发者，我希望模板包含示例业务模块，这样我可以参考标准的代码结构。
 
 ### 验收标准
 
-11.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `features/example/` 目录
+10.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `features/example/` 目录
 
-11.2 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `models.py` 文件，展示 SQLModel 模型定义
+10.2 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `models.py` 文件，展示 SQLModel 模型定义
 
-11.3 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `schemas.py` 文件，展示 Pydantic Schema 定义
+10.3 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `schemas.py` 文件，展示 Pydantic Schema 定义
 
-11.4 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `routers.py` 文件，展示 FastAPI 路由定义
+10.4 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `routers.py` 文件，展示 FastAPI 路由定义
 
-11.5 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `services.py` 文件，展示业务逻辑实现
+10.5 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `services.py` 文件，展示业务逻辑实现
 
-11.6 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `tasks.py` 文件，展示 TaskIQ 异步任务定义
-
----
-
-## 需求 12: 使用文档
-
-**用户故事**: 作为开发者，我希望模板包含详细的使用文档，这样我可以快速上手。
-
-### 验收标准
-
-12.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `README.md` 文件
-
-12.2 WHEN 开发者阅读 README 时，THE 文档 SHALL 包含快速开始指南
-
-12.3 WHEN 开发者阅读 README 时，THE 文档 SHALL 包含所有配置项的说明
-
-12.4 WHEN 开发者阅读 README 时，THE 文档 SHALL 包含常用命令列表
-
-12.5 WHEN 开发者阅读 README 时，THE 文档 SHALL 包含项目结构说明
-
-12.6 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `docs/` 目录，该目录包含详细的技术文档
+10.6 WHEN 模板项目被创建时，THE 示例模块 SHALL 包含 `tasks.py` 文件，展示 TaskIQ 异步任务定义
 
 ---
 
-## 需求 13: 依赖管理
+## 需求 11: 依赖管理
 
 **用户故事**: 作为开发者，我希望模板使用 PDM 管理依赖，这样我可以保持与 OneManage 一致的开发体验。
 
 ### 验收标准
 
-13.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `pyproject.toml` 文件
+11.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `pyproject.toml` 文件
 
-13.2 WHEN 模板项目被创建时，THE 依赖配置 SHALL 包含 FastAPI、Uvicorn、SQLModel、Alembic、TaskIQ、Loguru 等核心依赖
+11.2 WHEN 模板项目被创建时，THE 依赖配置 SHALL 包含 FastAPI、Uvicorn、SQLModel、Alembic、TaskIQ、Loguru 等核心依赖
 
-13.3 WHEN 开发者运行 `pdm install` 命令时，THE 系统 SHALL 安装所有必需的依赖
+11.3 WHEN 开发者运行 `pdm install` 命令时，THE 系统 SHALL 安装所有必需的依赖
 
-13.4 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `pdm.lock` 文件，锁定依赖版本
+11.4 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `pdm.lock` 文件，锁定依赖版本
 
 ---
 
-## 需求 14: 代码质量工具
+## 需求 12: 代码质量工具
 
 **用户故事**: 作为开发者，我希望模板包含代码质量工具配置，这样我可以保持代码风格一致。
 
 ### 验收标准
 
-14.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `.gitignore` 文件
+12.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `.gitignore` 文件
 
-14.2 WHEN 模板项目被创建时，THE pyproject.toml SHALL 包含 Black 代码格式化配置
+12.2 WHEN 模板项目被创建时，THE pyproject.toml SHALL 包含 Black 代码格式化配置
 
-14.3 WHEN 模板项目被创建时，THE pyproject.toml SHALL 包含 Ruff 代码检查配置
+12.3 WHEN 模板项目被创建时，THE pyproject.toml SHALL 包含 Ruff 代码检查配置
 
-14.4 WHEN 开发者运行 `pdm run black .` 命令时，THE 系统 SHALL 格式化所有 Python 文件
-
----
-
-## 需求 15: Makefile 快捷命令
-
-**用户故事**: 作为开发者，我希望模板包含 Makefile，这样我可以使用简短的命令执行常用操作。
-
-### 验收标准
-
-15.1 WHEN 模板项目被创建时，THE 模板项目 SHALL 包含 `Makefile` 文件
-
-15.2 WHEN 开发者运行 `make init` 命令时，THE 系统 SHALL 执行项目初始化流程
-
-15.3 WHEN 开发者运行 `make test` 命令时，THE 系统 SHALL 执行所有配置验证脚本
-
-15.4 WHEN 开发者运行 `make dev` 命令时，THE 系统 SHALL 启动开发环境
-
-15.5 WHEN 开发者运行 `make health` 命令时，THE 系统 SHALL 执行健康检查
-
-15.6 WHEN 开发者运行 `make format` 命令时，THE 系统 SHALL 格式化代码
-
-15.7 WHEN 开发者运行 `make migrate` 命令时，THE 系统 SHALL 执行数据库迁移
+12.4 WHEN 开发者运行 `pdm run black .` 命令时，THE 系统 SHALL 格式化所有 Python 文件
