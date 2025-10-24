@@ -121,94 +121,141 @@ inclusion: always
 - 模块任务如需升级为 Spec，创建对应的 spec 目录并更新引用
 - 保持两个系统的任务状态一致性
 
+## 同步 vs 异步决策规范
+
+### 决策标准：2秒阈值原则
+
+**同步处理（优先）**：
+- ✅ 执行时间 < 2秒
+- ✅ 需要立即返回结果给用户
+- ✅ 简单的数据库查询和更新
+- ✅ 轻量级数据转换和验证
+
+**异步处理（TaskIQ）**：
+- ✅ 执行时间 > 2秒
+- ✅ 计算密集型任务（图像处理、数据分析）
+- ✅ IO 密集型任务（文件上传、外部 API 调用）
+- ✅ 批量数据处理
+- ✅ 可以延迟执行的任务
+
+### 典型场景示例
+
+**同步场景**：
+```python
+# ✅ 用户登录验证（<100ms）
+@router.post("/login")
+async def login(credentials: LoginRequest):
+    user = await auth_service.verify_credentials(credentials)
+    return {"token": generate_token(user)}
+
+# ✅ 简单数据查询（<500ms）
+@router.get("/users/{user_id}")
+async def get_user(user_id: str):
+    return await user_service.get_by_id(user_id)
+
+# ✅ 数据验证和创建（<1秒）
+@router.post("/orders")
+async def create_order(order: OrderCreate):
+    validated_order = await order_service.validate_and_create(order)
+    return validated_order
+```
+
+**异步场景**：
+```python
+# ✅ PSD 文件解析（5-30秒）
+@router.post("/psd/parse")
+async def parse_psd(file: UploadFile):
+    task_id = str(uuid.uuid4())
+    await task_parse_psd.kiq(file_path, task_id)
+    return {"task_id": task_id, "status": "processing"}
+
+# ✅ 批量数据导入（分钟级）
+@router.post("/data/import")
+async def import_data(file: UploadFile):
+    task_id = await task_import_excel.kiq(file_path)
+    return {"task_id": task_id, "status": "queued"}
+
+# ✅ 图像生成（10-60秒）
+@router.post("/images/generate")
+async def generate_image(params: ImageParams):
+    task_id = await task_generate_background.kiq(params)
+    return {"task_id": task_id, "status": "queued"}
+```
+
+### 混合模式：同步入口 + 异步处理
+
+```python
+# 快速响应 + 后台处理
+@router.post("/orders")
+async def create_order(order: OrderCreate):
+    # 1. 同步：快速验证和创建订单（<1秒）
+    db_order = await order_service.create(order)
+    
+    # 2. 异步：发送邮件、更新库存等（后台处理）
+    await task_send_order_confirmation.kiq(db_order.id)
+    await task_update_inventory.kiq(db_order.items)
+    
+    # 3. 立即返回订单信息
+    return db_order
+```
+
+### 性能优化策略
+
+**数据库操作**：
+- 简单查询：同步（使用索引，<100ms）
+- 复杂聚合：考虑异步或缓存
+- 批量写入：异步（使用 Polars + 分批处理）
+
+**外部 API 调用**：
+- 关键路径：同步 + 超时控制（2秒超时）
+- 非关键路径：异步（邮件、通知、日志上报）
+
+**文件处理**：
+- 小文件（<1MB）：同步读取和验证
+- 大文件（>1MB）：异步处理
+- 文件上传：同步保存 + 异步处理
+
 ## TaskIQ + NATS 架构规范
 
-### 核心架构原则
-- **发布-订阅模式**: 使用 NATS 进行事件驱动的异步通信
-- **TaskIQ 任务**: 所有异步处理使用 TaskIQ 任务装饰器 `@broker.task`
-- **事件监听**: 使用 `@subscribe_event` 装饰器监听 NATS 事件
-- **模块化设计**: 每个服务模块有独立的 `tasks.py` 文件
+项目采用 TaskIQ + NATS 双流架构进行异步任务和事件处理。
 
-### 文件结构规范
-```
-features/{模块名}/services/{子服务}/
-├── tasks.py          # TaskIQ 任务定义和事件监听器
-├── {service}.py      # 核心业务逻辑
-└── README.md         # 服务文档
-```
+### 核心概念
+- **TASKS流**: 命令任务，使用 `@broker.task` 装饰器，1:1 语义
+- **EVENTS流**: 事件处理器，不使用装饰器，1:N 语义
+- **三个独立服务**: FastAPI 服务器、TaskIQ Worker、事件消费者
 
-### TaskIQ 任务规范
+### 命名规范快速参考
 ```python
-# 任务定义
-@broker.task
-async def async_process_something(param1: str, param2: int) -> dict:
-    """异步处理任务
-    
-    Args:
-        param1: 参数说明
-        param2: 参数说明
-        
-    Returns:
-        dict: 处理结果
-    """
-    try:
-        # 发布开始事件
-        await publish_event(PROCESS_STARTED, {...})
-        
-        # 执行业务逻辑
-        result = await do_something(param1, param2)
-        
-        # 发布完成事件
-        await publish_event(PROCESS_COMPLETED, {...})
-        
-        return result
-        
-    except Exception as e:
-        # 发布失败事件
-        await publish_event(PROCESS_FAILED, {...})
-        raise
+# 命令任务函数名
+task_parse_psd()
+task_generate_background()
+
+# 事件处理器函数名
+on_psd_parse_completed_publish_preview()
+on_data_import_completed_etl()
+
+# 事件主题格式
+"events.{domain}.{action}.{status}"
+"events.psd.parse_export.completed"
+"events.data_import.started"
 ```
 
-### NATS 事件监听规范
-```python
-# 事件监听器
-@subscribe_event(PROCESS_COMPLETED, model=ProcessCompletedEvent)
-async def on_process_completed(evt: ProcessCompletedEvent) -> None:
-    """监听处理完成事件
-    
-    Args:
-        evt: 事件数据模型
-    """
-    try:
-        # 更新数据库状态
-        async with get_session_context() as db:
-            await update_task_status(db, evt.task_id, "completed")
-            await db.commit()
-            
-    except Exception as e:
-        logger.error(f"事件处理失败: {e}")
+### 服务启动
+```bash
+# 开发环境启动顺序
+docker run -p 4222:4222 nats:latest --jetstream  # 1. NATS
+pdm run uvicorn main:app --reload                # 2. API
+pdm run taskiq worker core.broker:broker --workers 1  # 3. Worker
+pdm run python scripts/run_event_consumer.py    # 4. 事件消费者
 ```
 
-### 事件定义规范
-- **事件主题**: 在 `events/subjects.py` 中定义常量
-- **事件模型**: 在 `events/schemas.py` 中定义 Pydantic 模型
-- **事件发布**: 使用 `events/publisher.py` 的 `publish_event` 函数
-- **事件订阅**: 使用 `events/subscriber.py` 的 `@subscribe_event` 装饰器
+### 详细规范参考
+完整的架构设计、代码示例和最佳实践请参考：
+- **backend-architecture.md** - Tasks Layer 分层架构详解
+- **backend-tech-stack.md** - TaskIQ + NATS 配置和双流架构图
 
-### 数据存储策略
-- **临时数据**: 使用 NATS 消息队列，支持 TTL 自动过期
-- **持久数据**: 使用数据库存储，通过事件监听器更新状态
-- **缓存数据**: 可选使用 Redis，但优先使用 NATS 的内存存储
-- **文件存储**: 本地临时文件 + OSS/R2 永久存储
-
-### 错误处理规范
-- **重试机制**: 在 TaskIQ 任务中实现，使用指数退避
-- **降级策略**: NATS 不可用时降级到数据库查询
-- **事件补偿**: 失败事件包含足够信息用于问题排查
-- **监控告警**: 关键事件失败时发送告警
-
-### 禁止使用的模式
-- ❌ 不要使用 Redis 作为主要的消息队列
-- ❌ 不要在 NATS 事件中存储大量数据（>1MB）
-- ❌ 不要跳过事件发布直接调用其他模块的函数
-- ❌ 不要在事件监听器中执行长时间运行的任务
+### 关键原则
+- ✅ 命令任务用于执行操作并返回结果
+- ✅ 事件用于通知状态变化和解耦模块
+- ❌ 不要使用 `@broker.task` 装饰事件处理器
+- ❌ 不要在事件处理器中执行长时间任务（>2秒）
