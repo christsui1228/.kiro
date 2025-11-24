@@ -63,8 +63,8 @@ OneManage/
 ```
 features/{module_name}/
 ├── __init__.py
-├── models.py          # SQLModel 数据模型
-├── schemas.py         # msgspec/Pydantic API 模型
+├── models.py          # SQLModel 数据模型 + API 请求/响应模型 (需要持久化时)
+├── schemas.py         # API 请求/响应模型 (仅当不需要持久化时)
 ├── crud.py            # 数据库操作层
 ├── services.py        # 业务逻辑层
 ├── routers.py         # API 路由层
@@ -72,6 +72,11 @@ features/{module_name}/
 ├── exceptions.py      # 自定义异常 (可选)
 └── utils.py           # 工具函数 (可选)
 ```
+
+**数据模型文件选择规范**：
+- **有数据库表**: 使用 `models.py`，同时包含 SQLModel 数据库模型和 API 请求/响应模型
+- **无数据库表**: 使用 `schemas.py`，仅包含 API 请求/响应模型
+- **符合 SQLModel 最佳实践**: 将数据库模型和 API 模型放在同一文件中，便于共享字段定义
 
 ### 共享组件组织
 ```
@@ -91,7 +96,7 @@ core/
 
 events/
 ├── subjects.py        # 事件主题定义
-├── schemas.py         # 事件数据模型
+├── schemas.py         # 事件数据模型 (事件系统不涉及数据库，使用 schemas.py)
 ├── publisher.py       # 事件发布器
 └── consumer.py        # 事件消费者
 ```
@@ -124,44 +129,101 @@ scripts/
 ## 分层架构职责
 
 ### 1. Models Layer (`models.py`)
+
+**场景 A: 需要数据库持久化（推荐使用 SQLModel 最佳实践）**
+
+将数据库模型和 API 模型放在同一个 `models.py` 文件中：
+
 ```python
-# SQLModel 数据库表定义
+# features/users/models.py
 from sqlmodel import SQLModel, Field
+from pydantic import BaseModel
 import uuid
 
+# ========== 数据库模型 ==========
 class User(SQLModel, table=True):
+    """用户数据库表模型"""
     __tablename__ = "users"
     
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=100)
     email: str | None = Field(default=None)
-```
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
-### 2. Schemas Layer (`schemas.py`)
-```python
-# API 请求/响应模型
-from pydantic import BaseModel
-import uuid
-
+# ========== API 请求/响应模型 ==========
 class UserCreateRequest(BaseModel):
+    """创建用户请求模型"""
     name: str
     email: str | None = None
 
+class UserUpdateRequest(BaseModel):
+    """更新用户请求模型"""
+    name: str | None = None
+    email: str | None = None
+
 class UserResponse(BaseModel):
+    """用户响应模型"""
     id: uuid.UUID
     name: str
     email: str | None
+    created_at: datetime
     
     class Config:
         from_attributes = True
 ```
 
-### 3. CRUD Layer (`crud.py`)
+**场景 B: 不需要数据库持久化（使用 schemas.py）**
+
+仅有 API 请求/响应模型，不涉及数据库：
+
+```python
+# features/analysis/schemas.py
+from pydantic import BaseModel
+
+class AnalysisRequest(BaseModel):
+    """分析请求模型（不需要持久化）"""
+    data: list[dict]
+    analysis_type: str
+
+class AnalysisResponse(BaseModel):
+    """分析结果响应模型（不需要持久化）"""
+    result: dict
+    summary: str
+```
+
+**选择规则**：
+- ✅ **有数据库表**: 使用 `models.py`，包含数据库模型 + API 模型
+- ✅ **无数据库表**: 使用 `schemas.py`，仅包含 API 模型
+- ✅ **符合 SQLModel 最佳实践**: 共享字段定义，减少重复代码
+
+**实际项目示例**：
+```
+features/
+├── users/                    # 用户模块（需要持久化）
+│   ├── models.py            # ✅ 包含 User 表 + UserCreateRequest + UserResponse
+│   ├── crud.py
+│   ├── services.py
+│   └── routers.py
+│
+├── business_analysis/        # 业务分析模块（不需要持久化）
+│   ├── schemas.py           # ✅ 仅包含 AnalysisRequest + AnalysisResponse
+│   ├── analysis.py          # 分析逻辑
+│   └── routers.py
+│
+└── data_import/              # 数据导入模块（需要持久化）
+    ├── models.py            # ✅ 包含 ImportRecord 表 + ImportRequest + ImportResponse
+    ├── crud.py
+    ├── processor.py
+    └── routers.py
+```
+
+### 2. CRUD Layer (`crud.py`)
 ```python
 # 数据库操作，Repository 模式
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import uuid
+from .models import User  # 从 models.py 导入数据库模型
 
 class UserCRUD:
     @staticmethod
@@ -178,12 +240,12 @@ class UserCRUD:
         return result.scalar_one_or_none()
 ```
 
-### 4. Services Layer (`services.py`)
+### 3. Services Layer (`services.py`)
 ```python
 # 业务逻辑层
 from sqlalchemy.ext.asyncio import AsyncSession
 from .crud import UserCRUD
-from .schemas import UserCreateRequest, UserResponse
+from .models import UserCreateRequest, UserResponse  # 从 models.py 导入 API 模型
 
 class UserService:
     def __init__(self, db: AsyncSession):
@@ -204,14 +266,14 @@ class UserService:
         pass
 ```
 
-### 5. Routers Layer (`routers.py`)
+### 4. Routers Layer (`routers.py`)
 ```python
 # API 路由层，Controller
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_session
 from .services import UserService
-from .schemas import UserCreateRequest, UserResponse
+from .models import UserCreateRequest, UserResponse  # 从 models.py 导入 API 模型
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -227,7 +289,7 @@ async def create_user(
         raise HTTPException(status_code=400, detail=str(e))
 ```
 
-### 6. Tasks Layer (`tasks.py`)
+### 5. Tasks Layer (`tasks.py`)
 
 **双流架构：命令任务（TASKS流）+ 事件处理器（EVENTS流）**
 
