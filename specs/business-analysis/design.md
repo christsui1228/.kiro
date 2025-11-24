@@ -56,8 +56,8 @@ features/business_analysis/
 ├── routes.py           # FastAPI 路由定义
 └── constants.py        # 常量定义（维度、指标映射）
 
-前端（假设路径）:
-frontend/src/views/business-analysis/
+前端（OneManage_web）:
+OneManage_web/src/views/business-analysis/
 ├── index.vue                    # 主页面入口
 ├── components/
 │   ├── ConfigPanel.vue          # 配置面板
