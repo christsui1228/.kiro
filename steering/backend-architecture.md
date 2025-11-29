@@ -89,10 +89,48 @@ common/
 └── response_envelope.py       # 统一响应格式
 
 core/
-├── config.py          # 配置管理
-├── database.py        # 数据库连接
-├── broker.py          # TaskIQ 配置
-└── security.py        # 安全相关
+├── config.py              # 配置管理
+├── database_async.py      # 异步数据库连接和会话
+├── database_sync.py       # 同步数据库连接和会话
+├── broker.py              # TaskIQ 配置
+└── security.py            # 安全相关
+
+### 数据库会话管理
+
+项目使用两种数据库会话方式：
+
+#### 异步会话 (`database_async.py`)
+用于 FastAPI 路由和异步任务：
+```python
+from core.database_async import get_session, get_session_context
+
+# 方式 1: FastAPI 依赖注入
+@router.get("/users")
+async def list_users(db: AsyncSession = Depends(get_session)):
+    users = await db.execute(select(User))
+    return users.scalars().all()
+
+# 方式 2: 上下文管理器（用于事件处理器、后台任务）
+async with get_session_context() as db:
+    user = await db.get(User, user_id)
+    await db.commit()
+```
+
+#### 同步会话 (`database_sync.py`)
+用于数据分析和批量处理（配合 Polars）：
+```python
+from core.database_sync import get_sync_session_context
+
+# 用于 Polars + ConnectorX 数据分析
+with get_sync_session_context() as db:
+    # 执行同步数据库操作
+    result = db.execute(select(User))
+    users = result.scalars().all()
+```
+
+**使用场景**：
+- ✅ **异步会话**: FastAPI 路由、TaskIQ 任务、事件处理器
+- ✅ **同步会话**: 数据分析脚本、批量 ETL 任务、Polars 数据处理
 
 events/
 ├── subjects.py        # 事件主题定义
@@ -271,7 +309,7 @@ class UserService:
 # API 路由层，Controller
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.database import get_session
+from core.database_async import get_session
 from .services import UserService
 from .models import UserCreateRequest, UserResponse  # 从 models.py 导入 API 模型
 
@@ -362,7 +400,7 @@ async def on_user_email_completed(raw_payload: dict) -> None:
         logger.info(f"收到邮件发送完成事件: user_id={raw_payload.get('user_id')}")
         
         # 更新数据库状态
-        from core.database import get_session_context
+        from core.database_async import get_session_context
         async with get_session_context() as db:
             # 更新用户邮件发送状态
             await update_user_email_status(db, raw_payload["user_id"], "sent")
