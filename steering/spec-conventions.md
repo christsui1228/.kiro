@@ -27,6 +27,33 @@ inclusion: always
 ## 目录命名规范
 - 文件名保持英文，便于系统兼容性
 
+## 文档创建规范
+
+### 禁止创建的文档类型
+为了提高执行速度和节省 token，在任务执行过程中**严格禁止**创建以下类型的 Markdown 文档：
+
+❌ **禁止创建**：
+- 实施总结文档（`IMPLEMENTATION_SUMMARY.md`、`TASK_X_IMPLEMENTATION_SUMMARY.md`）
+- 验证清单文档（`VERIFICATION_CHECKLIST.md`、`TASK_X_VERIFICATION.md`）
+- 集成指南文档（`INTEGRATION_GUIDE.md`）
+- 使用说明文档（`README.md`、`USER_GUIDE.md`）
+- 测试指南文档（`TEST_GUIDE.md`）
+- 性能优化文档（`PERFORMANCE_OPTIMIZATION.md`）
+- 故障排查文档（`TROUBLESHOOTING.md`）
+- 任何其他总结性、说明性的 MD 文档
+
+### 允许的文档操作
+✅ **仅允许**：
+- 修改 Spec 核心文档（`requirements.md`、`design.md`、`tasks.md`）
+- 修改项目根目录的 `README.md`（仅在明确要求时）
+- 创建代码注释和 docstring（在代码文件内部）
+
+### 执行原则
+- 任务完成后，直接向用户口头汇报结果，不创建总结文档
+- 验证结果直接在对话中说明，不创建验证清单
+- 使用说明通过代码注释和 docstring 提供
+- 集成方式在对话中解释，不创建单独文档
+
 ## 开发流程规范
 
 ### 核心原则
